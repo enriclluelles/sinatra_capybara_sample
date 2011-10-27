@@ -6,10 +6,6 @@ class HiTest < MiniTest::Unit::IntegrationTestCase
     visit("/hi")
   end
 
-  def javascript?
-    true
-  end
-
   def test_hi
     assert page.has_content?("O hai!")
   end

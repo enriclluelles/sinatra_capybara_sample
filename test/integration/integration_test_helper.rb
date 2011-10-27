@@ -6,25 +6,35 @@ module MiniTest
   class Unit
     class IntegrationTestCase < TestCase
       include Capybara::DSL
+    end
 
-      #Minitest provides us with post_setup_hooks but not with
-      #pre hooks so I did this quick hack
-      def setup_with_pre_hook
-        Capybara.current_driver = :selenium_chrome if javascript?
-        setup_with_no_hooks
+    class JsIntegrationTestCase < IntegrationTestCase
+      def self.do_at_exit inheritor
+        at_exit do
+          inheritor.module_eval do
+            alias_method :setup_with_no_hook, :setup
+            def setup
+              Capybara.current_driver = :selenium_chrome
+              setup_with_no_hook
+            end
+
+            alias_method :teardown_with_no_hook, :teardown
+            def teardown
+              teardown_with_no_hook
+              Capybara.use_default_driver
+            end
+          end
+        end
       end
-      alias :setup_with_no_hooks :setup
-      alias :setup :setup_with_pre_hook
 
-      #We should find a better way to do this
-      def javascript?
-        false
+      def self.inherited klass
+        do_at_exit klass
+        super
       end
-
-      add_teardown_hook Proc.new{ Capybara.use_default_driver }
     end
   end
 end
+
 
 Capybara.register_driver :selenium_chrome do |app|
   #We need to download the chrome webdriver and have it on our path
